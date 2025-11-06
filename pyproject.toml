@@ -1,0 +1,23 @@
+[project]
+name = "packvote-demo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.121.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "langchain>=1.0.3",
+    "langchain-community>=0.4.1",
+    "langchain-core>=1.0.3",
+    "langchain-openai>=1.0.2",
+    "langchain-qdrant>=1.1.0",
+    "langgraph>=1.0.2",
+    "pydantic>=2.12.4",
+    "pyowm>=3.5.0",
+    "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.20",
+    "tavily-python>=0.7.12",
+    "uvicorn>=0.38.0",
+]

@@ -80,6 +80,10 @@
                   {% endfor %}
                 {% endif %}
               </h1>
+              <div id="project-travel-info" class="project-travel-info" style="display: none;">
+                <span id="project-travel-date" class="travel-info-item"></span>
+                <span id="project-travel-duration" class="travel-info-item"></span>
+              </div>
               <p class="muted" id="participants-count">0 participants</p>
             </div>
             <button id="add-participant-btn" class="btn-add-participant" type="button">
@@ -94,8 +98,6 @@
                   <th>Name</th>
                   <th>Location</th>
                   <th>Budget</th>
-                  <th>Travel Date</th>
-                  <th>Duration</th>
                   <th>Preferences</th>
                   <th>Date Added</th>
                   <th></th>
@@ -210,7 +212,7 @@
                 <div>
                   <div class="title">{{ v.label }}</div>
                   <div class="sub">
-                    {% if k == 3 %}
+                    {% if k == "high" %}
                       {{ v.range[0] }}+ USD
                     {% else %}
                       {{ v.range[0] }} – {{ v.range[1] }} USD
@@ -224,57 +226,6 @@
             <div class="note">Budget is for activities & dining.</div>
           </div>
 
-          <!-- Date & Duration -->
-          <div class="card">
-            <label>When are you planning to travel?</label>
-            <div class="date-picker-container">
-              <input type="hidden" id="travel_date" name="travel_date" required/>
-              <button type="button" id="travel_date_trigger" class="date-picker-trigger">
-                <span id="travel_date_display">Select date</span>
-                <span class="date-picker-icon">📅</span>
-              </button>
-              <div id="travel_date_dropdown" class="date-picker-dropdown" style="display: none;">
-                <div class="date-picker-header">
-                  <select id="travel_date_month" class="date-picker-select">
-                    <option value="0">January</option>
-                    <option value="1">February</option>
-                    <option value="2">March</option>
-                    <option value="3">April</option>
-                    <option value="4">May</option>
-                    <option value="5">June</option>
-                    <option value="6">July</option>
-                    <option value="7">August</option>
-                    <option value="8">September</option>
-                    <option value="9">October</option>
-                    <option value="10">November</option>
-                    <option value="11">December</option>
-                  </select>
-                  <select id="travel_date_year" class="date-picker-select"></select>
-                </div>
-                <div class="date-picker-calendar">
-                  <div class="date-picker-weekdays">
-                    <div>Sun</div>
-                    <div>Mon</div>
-                    <div>Tue</div>
-                    <div>Wed</div>
-                    <div>Thu</div>
-                    <div>Fri</div>
-                    <div>Sat</div>
-                  </div>
-                  <div id="travel_date_days" class="date-picker-days"></div>
-                </div>
-              </div>
-            </div>
-            <div style="height:18px"></div>
-            <label>How many days are you planning to travel?</label>
-            <div class="row">
-              <div class="stepper">
-                <button type="button" id="minus">−</button>
-                <input id="travel_duration" name="travel_duration" type="number" value="3" min="1" max="60" style="width:90px; text-align:center"/>
-                <button type="button" id="plus">+</button>
-              </div>
-            </div>
-          </div>
 
           <!-- Preferences -->
           <div class="card" id="prefs-card" data-prefs='{{ preferences | tojson }}'>
@@ -299,10 +250,71 @@
   <!-- Modal for Project Creation -->
   <div id="project-modal" class="modal" style="display: none;">
     <div class="modal-overlay"></div>
-    <div class="modal-content">
-      <h2>Create New Project</h2>
-      <p class="modal-message">Enter project name. Start adding members.</p>
-      <input type="text" id="modal-project-name" placeholder="Enter project name" class="modal-input" autofocus/>
+    <div class="modal-content modal-content-large">
+      <div class="modal-content-large-inner">
+        <h2>Create New Project</h2>
+        <p class="modal-message">Enter project details. Start adding members.</p>
+        <input type="text" id="modal-project-name" placeholder="Enter project name" class="modal-input" autofocus/>
+        
+        <!-- Travel Date & Duration -->
+        <div class="card travel-card">
+          <div class="travel-field">
+            <label for="modal-travel_date_trigger">When are you planning to travel?</label>
+            <div class="date-picker-container">
+              <input type="hidden" id="modal-travel_date" name="travel_date" required/>
+              <button type="button" id="modal-travel_date_trigger" class="date-picker-trigger">
+                <span id="modal-travel_date_display">Select date</span>
+                <span class="date-picker-icon">📅</span>
+              </button>
+              <div id="modal-travel_date_dropdown" class="date-picker-dropdown" style="display: none;">
+                <div class="date-picker-header">
+                  <select id="modal-travel_date_month" class="date-picker-select">
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+                  </select>
+                  <select id="modal-travel_date_year" class="date-picker-select"></select>
+                </div>
+                <div class="date-picker-calendar">
+                  <div class="date-picker-weekdays">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                  </div>
+                  <div id="modal-travel_date_days" class="date-picker-days"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="travel-field travel-duration">
+            <div class="travel-duration-header">
+              <label for="modal-travel_duration">How many days are you planning to travel?</label>
+              <span class="duration-hint muted">Up to 60 days</span>
+            </div>
+            <div class="travel-duration-controls">
+              <div class="stepper">
+                <button type="button" id="modal-minus">−</button>
+                <input id="modal-travel_duration" name="travel_duration" type="number" value="3" min="1" max="60" class="stepper-input"/>
+                <button type="button" id="modal-plus">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div class="modal-actions">
         <button type="button" id="modal-create-btn" class="btn-modal-create">Create Project</button>
         <button type="button" id="modal-cancel-btn" class="btn-modal-cancel">Cancel</button>
@@ -313,170 +325,121 @@
   <!-- Modal for Participant Form -->
   <div id="participant-form-modal" class="modal" style="display: none;">
     <div class="modal-overlay"></div>
-    <div class="modal-content modal-content-large">
-      <h2>Add New Participant</h2>
-      <p class="modal-message">Fill this quick survey so we can tailor your trip.</p>
-      
-      <form id="participant-form" method="post" action="/submit">
-        <input type="hidden" id="form-project-name" name="project_name" value=""/>
+    <div class="modal-content modal-content-large modal-content-condensed">
+      <div class="modal-content-large-inner">
+        <h2>Add New Participant</h2>
+        <p class="modal-message">Fill this quick survey so we can tailor your trip.</p>
         
-        <div class="grid grid-2">
-          <div class="field">
-            <label for="form-name">Name</label>
-            <input id="form-name" name="name" type="text" placeholder="Alex Doe" required/>
-          </div>
-          <div class="field">
-            <label for="form-phone">Phone</label>
-            <div class="phone-input-group">
-              <select id="form-country_code" name="country_code" class="country-code-select" required>
-                <option value="+1">🇺🇸 +1</option>
-                <option value="+44">🇬🇧 +44</option>
-                <option value="+91">🇮🇳 +91</option>
-                <option value="+86">🇨🇳 +86</option>
-                <option value="+81">🇯🇵 +81</option>
-                <option value="+49">🇩🇪 +49</option>
-                <option value="+33">🇫🇷 +33</option>
-                <option value="+39">🇮🇹 +39</option>
-                <option value="+34">🇪🇸 +34</option>
-                <option value="+61">🇦🇺 +61</option>
-                <option value="+55">🇧🇷 +55</option>
-                <option value="+52">🇲🇽 +52</option>
-                <option value="+7">🇷🇺 +7</option>
-                <option value="+82">🇰🇷 +82</option>
-                <option value="+65">🇸🇬 +65</option>
-                <option value="+971">🇦🇪 +971</option>
-                <option value="+966">🇸🇦 +966</option>
-                <option value="+27">🇿🇦 +27</option>
-                <option value="+31">🇳🇱 +31</option>
-                <option value="+46">🇸🇪 +46</option>
-                <option value="+47">🇳🇴 +47</option>
-                <option value="+41">🇨🇭 +41</option>
-                <option value="+32">🇧🇪 +32</option>
-                <option value="+351">🇵🇹 +351</option>
-                <option value="+353">🇮🇪 +353</option>
-                <option value="+358">🇫🇮 +358</option>
-                <option value="+45">🇩🇰 +45</option>
-                <option value="+48">🇵🇱 +48</option>
-                <option value="+90">🇹🇷 +90</option>
-                <option value="+20">🇪🇬 +20</option>
-                <option value="+234">🇳🇬 +234</option>
-                <option value="+254">🇰🇪 +254</option>
-                <option value="+60">🇲🇾 +60</option>
-                <option value="+66">🇹🇭 +66</option>
-                <option value="+62">🇮🇩 +62</option>
-                <option value="+63">🇵🇭 +63</option>
-                <option value="+84">🇻🇳 +84</option>
-                <option value="+64">🇳🇿 +64</option>
-                <option value="+1">🇨🇦 +1</option>
-              </select>
-              <input id="form-phone" name="phone" type="tel" placeholder="5551234567" 
-                     pattern="[0-9]{10}" required/>
+        <form id="participant-form" method="post" action="/submit">
+          <input type="hidden" id="form-project-name" name="project_name" value=""/>
+          
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="form-name">Name</label>
+              <input id="form-name" name="name" type="text" placeholder="Alex Doe" required/>
             </div>
-            <div class="note">Enter 10-digit phone number (digits only).</div>
-            <div id="form-phone-warning" class="phone-warning" style="display: none;">
-              Phone number must be exactly 10 digits
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="form-current_location">Current Location</label>
-          <input id="form-current_location" name="current_location" type="text" placeholder="Austin, TX" required/>
-        </div>
-
-        <div class="card" id="form-budget-card" data-budgets='{{ budget_cards | tojson }}'>
-          <label>What is Your Budget?</label>
-          <div class="grid grid-3" id="form-budget-cards">
-            {% for k, v in budget_cards.items() %}
-            <label class="pill" data-budget="{{ k }}">
-              <input type="radio" name="budget_category" value="{{ k }}"/>
-              <div>
-                <div class="title">{{ v.label }}</div>
-                <div class="sub">
-                  {% if k == 3 %}
-                    {{ v.range[0] }}+ USD
-                  {% else %}
-                    {{ v.range[0] }} – {{ v.range[1] }} USD
-                  {% endif %}
-                </div>
-              </div>
-            </label>
-            {% endfor %}
-          </div>
-          <input type="hidden" id="form-budget_range" name="budget_range"/>
-        </div>
-
-        <div class="card">
-          <label>When are you planning to travel?</label>
-          <div class="date-picker-container">
-            <input type="hidden" id="form-travel_date" name="travel_date" required/>
-            <button type="button" id="form-travel_date_trigger" class="date-picker-trigger">
-              <span id="form-travel_date_display">Select date</span>
-              <span class="date-picker-icon">📅</span>
-            </button>
-            <div id="form-travel_date_dropdown" class="date-picker-dropdown" style="display: none;">
-              <div class="date-picker-header">
-                <select id="form-travel_date_month" class="date-picker-select">
-                  <option value="0">January</option>
-                  <option value="1">February</option>
-                  <option value="2">March</option>
-                  <option value="3">April</option>
-                  <option value="4">May</option>
-                  <option value="5">June</option>
-                  <option value="6">July</option>
-                  <option value="7">August</option>
-                  <option value="8">September</option>
-                  <option value="9">October</option>
-                  <option value="10">November</option>
-                  <option value="11">December</option>
+            <div class="field">
+              <label for="form-phone">Phone</label>
+              <div class="phone-input-group">
+                <select id="form-country_code" name="country_code" class="country-code-select" required>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+86">🇨🇳 +86</option>
+                  <option value="+81">🇯🇵 +81</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+39">🇮🇹 +39</option>
+                  <option value="+34">🇪🇸 +34</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+55">🇧🇷 +55</option>
+                  <option value="+52">🇲🇽 +52</option>
+                  <option value="+7">🇷🇺 +7</option>
+                  <option value="+82">🇰🇷 +82</option>
+                  <option value="+65">🇸🇬 +65</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+966">🇸🇦 +966</option>
+                  <option value="+27">🇿🇦 +27</option>
+                  <option value="+31">🇳🇱 +31</option>
+                  <option value="+46">🇸🇪 +46</option>
+                  <option value="+47">🇳🇴 +47</option>
+                  <option value="+41">🇨🇭 +41</option>
+                  <option value="+32">🇧🇪 +32</option>
+                  <option value="+351">🇵🇹 +351</option>
+                  <option value="+353">🇮🇪 +353</option>
+                  <option value="+358">🇫🇮 +358</option>
+                  <option value="+45">🇩🇰 +45</option>
+                  <option value="+48">🇵🇱 +48</option>
+                  <option value="+90">🇹🇷 +90</option>
+                  <option value="+20">🇪🇬 +20</option>
+                  <option value="+234">🇳🇬 +234</option>
+                  <option value="+254">🇰🇪 +254</option>
+                  <option value="+60">🇲🇾 +60</option>
+                  <option value="+66">🇹🇭 +66</option>
+                  <option value="+62">🇮🇩 +62</option>
+                  <option value="+63">🇵🇭 +63</option>
+                  <option value="+84">🇻🇳 +84</option>
+                  <option value="+64">🇳🇿 +64</option>
+                  <option value="+1">🇨🇦 +1</option>
                 </select>
-                <select id="form-travel_date_year" class="date-picker-select"></select>
+                <input id="form-phone" name="phone" type="tel" placeholder="5551234567" 
+                       pattern="[0-9]{10}" required/>
               </div>
-              <div class="date-picker-calendar">
-                <div class="date-picker-weekdays">
-                  <div>Sun</div>
-                  <div>Mon</div>
-                  <div>Tue</div>
-                  <div>Wed</div>
-                  <div>Thu</div>
-                  <div>Fri</div>
-                  <div>Sat</div>
+              <div class="note">Enter 10-digit phone number (digits only).</div>
+              <div id="form-phone-warning" class="phone-warning" style="display: none;">
+                Phone number must be exactly 10 digits
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="form-current_location">Current Location</label>
+            <input id="form-current_location" name="current_location" type="text" placeholder="Austin, TX" required/>
+          </div>
+
+          <div class="card" id="form-budget-card" data-budgets='{{ budget_cards | tojson }}'>
+            <label>What is Your Budget?</label>
+            <div class="grid grid-3" id="form-budget-cards">
+              {% for k, v in budget_cards.items() %}
+              <label class="pill" data-budget="{{ k }}">
+                <input type="radio" name="budget_category" value="{{ k }}"/>
+                <div>
+                  <div class="title">{{ v.label }}</div>
+                  <div class="sub">
+                    {% if k == "high" %}
+                      {{ v.range[0] }}+ USD
+                    {% else %}
+                      {{ v.range[0] }} – {{ v.range[1] }} USD
+                    {% endif %}
+                  </div>
                 </div>
-                <div id="form-travel_date_days" class="date-picker-days"></div>
-              </div>
+              </label>
+              {% endfor %}
+            </div>
+            <input type="hidden" id="form-budget_range" name="budget_range"/>
+          </div>
+
+
+          <div class="card" id="form-prefs-card" data-prefs='{{ preferences | tojson }}'>
+            <label>Preferences</label>
+            <div class="prefs" id="form-pref-grid">
+              {% for p in preferences %}
+              <label class="pref">
+                <input type="checkbox" name="preferences" value="{{ p }}"/>
+                <div>{{ p }}</div>
+              </label>
+              {% endfor %}
             </div>
           </div>
-          <div style="height:18px"></div>
-          <label>How many days are you planning to travel?</label>
-          <div class="row">
-            <div class="stepper">
-              <button type="button" id="form-minus">−</button>
-              <input id="form-travel_duration" name="travel_duration" type="number" value="3" min="1" max="60" style="width:90px; text-align:center"/>
-              <button type="button" id="form-plus">+</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" id="form-prefs-card" data-prefs='{{ preferences | tojson }}'>
-          <label>Preferences</label>
-          <div class="prefs" id="form-pref-grid">
-            {% for p in preferences %}
-            <label class="pref">
-              <input type="checkbox" name="preferences" value="{{ p }}"/>
-              <div>{{ p }}</div>
-            </label>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="submit" class="btn-modal-create">Add Participant</button>
-          <button type="button" id="form-cancel-btn" class="btn-modal-cancel">Cancel</button>
-        </div>
-      </form>
+        </form>
+      </div>
+      <div class="modal-actions">
+        <button form="participant-form" type="submit" class="btn-modal-create">Add Participant</button>
+        <button type="button" id="form-cancel-btn" class="btn-modal-cancel">Cancel</button>
+      </div>
     </div>
   </div>
 
-  <script src="/static/js/main.js"></script>
+  <script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

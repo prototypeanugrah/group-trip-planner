@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 
-from src.packvote.utils.utils import UserSurvey
+from src.packvote.backend.utils.utils import UserSurvey
 
 load_dotenv()
 

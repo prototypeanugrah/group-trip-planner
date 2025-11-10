@@ -1,7 +1,7 @@
 from langchain.tools import tool
 from tavily import TavilyClient
 
-from src.packvote import TAVILY_API_KEY
+from src.packvote.backend import TAVILY_API_KEY
 
 
 @tool

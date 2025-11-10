@@ -4,10 +4,10 @@ from langchain.agents import create_agent
 from langchain_community.utilities.openweathermap import OpenWeatherMapAPIWrapper
 from langchain_openai import ChatOpenAI
 
-from src.packvote.tools.search import search_tavily
-from src.packvote.utils.utils import (
+from src.packvote.backend.tools.search import search_tavily
+from src.packvote.backend.utils.langgraph_elements import UserSurvey
+from src.packvote.backend.utils.utils import (
     OutputTravelResearchSchema,
-    UserSurvey,
     handle_tool_errors,
 )
 
@@ -15,11 +15,13 @@ from src.packvote.utils.utils import (
 def main():
     # Read the sample responses
     with open(
-        "src/packvote/artifacts/sample_responses.json", "r", encoding="utf-8"
+        "src/packvote/backend/artifacts/user_surveys/test_submission.json",
+        "r",
+        encoding="utf-8",
     ) as f:
-        sample_responses = json.load(f)
+        user_survey_responses = json.load(f)
     user_surveys = [
-        UserSurvey.model_validate(response) for response in sample_responses
+        UserSurvey.model_validate(response) for response in user_survey_responses
     ]
 
     weather_tool = OpenWeatherMapAPIWrapper()

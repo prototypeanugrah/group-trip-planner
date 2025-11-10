@@ -1,4 +1,15 @@
-# app.py
+"""PackVote API
+
+This API is used to create a new project and submit user surveys.
+
+Usage:
+    uv run uvicorn app:app --reload
+Returns:
+    API for the PackVote project.
+
+
+"""
+
 import csv
 import io
 import json
@@ -18,14 +29,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from src.packvote.utils.utils import UserSurvey
+from src.packvote.backend.utils.langgraph_elements import UserSurvey
 
 app = FastAPI(title="PackVote")
 
 # JSON file for persistent storage - path will be determined by project_name from form
-ARTIFACTS_DIR = Path("src/packvote/artifacts/user_surveys")
+ARTIFACTS_DIR = Path("src/packvote/backend/artifacts/model_inputs/user_surveys")
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-PROJECTS_FILE = Path("src/packvote/artifacts/projects.json")
+PROJECTS_FILE = Path("src/packvote/backend/artifacts/model_inputs/projects.json")
 
 # Mount frontend assets
 app.mount(
@@ -49,9 +60,9 @@ PREFERENCES = [
     "Spa wellness",
 ]
 BUDGET_CARDS = {
-    1: {"label": "Low", "range": [0, 1000]},
-    2: {"label": "Medium", "range": [1000, 2500]},
-    3: {"label": "High", "range": [2500, 5000]},
+    "low": {"label": "Low", "range": [0, 1000]},
+    "medium": {"label": "Medium", "range": [1000, 2500]},
+    "high": {"label": "High", "range": [2500, 5000]},
 }
 
 
@@ -73,7 +84,9 @@ def save_projects(projects: List[dict]) -> None:
         json.dump(projects, f, indent=2, ensure_ascii=False)
 
 
-def add_project(project_name: str) -> dict:
+def add_project(
+    project_name: str, travel_date: str = None, travel_duration: int = None
+) -> dict:
     """Add a new project if it doesn't exist."""
     projects = get_projects()
     safe_name = sanitize_project_name(project_name)
@@ -81,6 +94,12 @@ def add_project(project_name: str) -> dict:
     # Check if project already exists
     for p in projects:
         if p.get("safe_name") == safe_name:
+            # Update travel info if provided
+            if travel_date is not None:
+                p["travel_date"] = travel_date
+            if travel_duration is not None:
+                p["travel_duration"] = travel_duration
+            save_projects(projects)
             return p
 
     # Create new project
@@ -89,6 +108,10 @@ def add_project(project_name: str) -> dict:
         "safe_name": safe_name,
         "created_at": None,  # Could add timestamp if needed
     }
+    if travel_date is not None:
+        new_project["travel_date"] = travel_date
+    if travel_duration is not None:
+        new_project["travel_duration"] = travel_duration
     projects.append(new_project)
     save_projects(projects)
     return new_project
@@ -117,10 +140,19 @@ def load_submissions_from_file(project_name: str) -> List[UserSurvey]:
         try:
             with open(submissions_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                # Handle backward compatibility: old format (object with travel_date, travel_duration, submissions)
+                if isinstance(data, dict) and "submissions" in data:
+                    submissions_list = data.get("submissions", [])
+                else:
+                    # Current format (array of submissions)
+                    submissions_list = data if isinstance(data, list) else []
+
                 submissions = []
-                for item in data:
+                for item in submissions_list:
                     # Remove added_at before creating UserSurvey object
-                    item_copy = {k: v for k, v in item.items() if k != "added_at"}
+                    item_copy = {
+                        k: v for k, v in item.items() if k not in ("added_at",)
+                    }
                     # Handle backward compatibility: convert phone to int if string
                     if "phone" in item_copy and isinstance(item_copy["phone"], str):
                         phone_clean = "".join(filter(str.isdigit, item_copy["phone"]))
@@ -139,18 +171,29 @@ def load_submissions_from_file(project_name: str) -> List[UserSurvey]:
     return []
 
 
-def load_submissions_with_metadata(project_name: str) -> List[dict]:
-    """Load submissions with metadata (like added_at) from JSON file."""
+def load_submissions_with_metadata(project_name: str) -> dict:
+    """Load submissions with metadata (like added_at) from JSON file.
+    Returns dict with submissions array."""
     submissions_file = get_submissions_file_path(project_name)
     if submissions_file.exists():
         try:
             with open(submissions_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
+
+                # Handle backward compatibility: old format (object with travel_date, travel_duration, submissions)
+                if isinstance(data, dict) and "submissions" in data:
+                    submissions_list = data.get("submissions", [])
+                else:
+                    # Current format (array of submissions)
+                    submissions_list = data if isinstance(data, list) else []
+
                 # Validate each item as UserSurvey, but return full data including added_at
                 validated_data = []
-                for item in data:
+                for item in submissions_list:
                     # Validate the submission (excluding added_at)
-                    item_copy = {k: v for k, v in item.items() if k != "added_at"}
+                    item_copy = {
+                        k: v for k, v in item.items() if k not in ("added_at",)
+                    }
                     # Handle backward compatibility: convert phone to int if string
                     if "phone" in item_copy and isinstance(item_copy["phone"], str):
                         phone_clean = "".join(filter(str.isdigit, item_copy["phone"]))
@@ -167,34 +210,43 @@ def load_submissions_with_metadata(project_name: str) -> List[dict]:
                     if "added_at" in item:
                         result["added_at"] = item["added_at"]
                     validated_data.append(result)
-                return validated_data
+
+                # Return submissions array
+                return {"submissions": validated_data}
         except (json.JSONDecodeError, ValidationError, KeyError) as e:
             print(f"Error loading submissions file: {e}")
-            return []
-    return []
+            return {"submissions": []}
+    return {"submissions": []}
 
 
 def append_submission_to_file(survey: UserSurvey, project_name: str) -> None:
     """Append a single submission to the JSON file for the given project."""
     submissions_file = get_submissions_file_path(project_name)
 
-    # Read existing submissions
-    existing_data = []
+    # Read existing data
+    existing_submissions = []
+
     if submissions_file.exists():
         try:
             with open(submissions_file, "r", encoding="utf-8") as f:
-                existing_data = json.load(f)
+                data = json.load(f)
+                # Handle backward compatibility: old format (object with travel_date, travel_duration, submissions)
+                if isinstance(data, dict) and "submissions" in data:
+                    existing_submissions = data.get("submissions", [])
+                else:
+                    # Current format (array of submissions)
+                    existing_submissions = data if isinstance(data, list) else []
         except json.JSONDecodeError:
-            existing_data = []
+            existing_submissions = []
 
     # Append new submission with timestamp
     submission_data = survey.model_dump()
     submission_data["added_at"] = datetime.now().isoformat()
-    existing_data.append(submission_data)
+    existing_submissions.append(submission_data)
 
-    # Write back to file
+    # Write back to file as array
     with open(submissions_file, "w", encoding="utf-8") as f:
-        json.dump(existing_data, f, indent=2, ensure_ascii=False)
+        json.dump(existing_submissions, f, indent=2, ensure_ascii=False)
 
 
 # In-memory storage (will be project-specific in future)
@@ -235,7 +287,28 @@ async def create_project(request: Request):
     if not project_name:
         return PlainTextResponse("Project name is required", status_code=400)
 
-    project = add_project(project_name)
+    travel_date = form_data.get("travel_date", "").strip()
+    travel_duration = form_data.get("travel_duration", "").strip()
+
+    if not travel_date:
+        return PlainTextResponse("Travel date is required", status_code=400)
+
+    if not travel_duration:
+        return PlainTextResponse("Travel duration is required", status_code=400)
+
+    try:
+        travel_duration_int = int(travel_duration)
+    except ValueError:
+        return PlainTextResponse("Travel duration must be a number", status_code=400)
+
+    project = add_project(project_name, travel_date, travel_duration_int)
+
+    # Initialize submissions file as empty array
+    submissions_file = get_submissions_file_path(project_name)
+    if not submissions_file.exists():
+        with open(submissions_file, "w", encoding="utf-8") as f:
+            json.dump([], f, indent=2, ensure_ascii=False)
+
     return JSONResponse(project)
 
 
@@ -293,16 +366,23 @@ async def delete_participant(project_name: str, request: Request):
 
         try:
             with open(submissions_file, "r", encoding="utf-8") as f:
-                submissions = json.load(f)
+                data = json.load(f)
         except json.JSONDecodeError:
             return PlainTextResponse("Invalid submissions file", status_code=500)
 
+        # Handle backward compatibility: old format (object with travel_date, travel_duration, submissions)
+        if isinstance(data, dict) and "submissions" in data:
+            submissions_list = data.get("submissions", [])
+        else:
+            # Current format (array of submissions)
+            submissions_list = data if isinstance(data, list) else []
+
         # Find and remove the matching participant
         # Match by name, phone, and added_at
-        original_count = len(submissions)
-        submissions = [
+        original_count = len(submissions_list)
+        submissions_list = [
             s
-            for s in submissions
+            for s in submissions_list
             if not (
                 s.get("name") == participant_data.get("name")
                 and str(s.get("phone")) == str(participant_data.get("phone"))
@@ -310,12 +390,12 @@ async def delete_participant(project_name: str, request: Request):
             )
         ]
 
-        if len(submissions) == original_count:
+        if len(submissions_list) == original_count:
             return PlainTextResponse("Participant not found", status_code=404)
 
-        # Save updated submissions
+        # Save updated submissions as array
         with open(submissions_file, "w", encoding="utf-8") as f:
-            json.dump(submissions, f, indent=2, ensure_ascii=False)
+            json.dump(submissions_list, f, indent=2, ensure_ascii=False)
 
         return JSONResponse({"message": "Participant deleted successfully"})
 
@@ -332,11 +412,9 @@ async def submit(
     name: str = Form(...),
     phone: str = Form(...),
     country_code: str = Form(...),
-    budget_category: int = Form(...),
+    budget_category: str = Form(...),
     budget_range: str = Form(...),
     current_location: str = Form(...),
-    travel_date: str = Form(...),
-    travel_duration: int = Form(...),
 ):
     try:
         # Get preferences from form - FastAPI handles multiple values with same name
@@ -360,15 +438,20 @@ async def submit(
                 "Phone number must contain only digits", status_code=400
             )
 
+        # Validate budget_category is one of the allowed values
+        budget_category_lower = budget_category.strip().lower()
+        if budget_category_lower not in ["low", "medium", "high"]:
+            return PlainTextResponse(
+                "Budget category must be 'low', 'medium', or 'high'", status_code=400
+            )
+
         payload = {
             "name": name.strip(),
             "phone": phone_int,
             "country_code": country_code.strip(),
-            "budget_category": int(budget_category),
+            "budget_category": budget_category_lower,
             "budget_range": json.loads(budget_range),
             "current_location": current_location.strip(),
-            "travel_date": travel_date,
-            "travel_duration": int(travel_duration),
             "preferences": preferences or [],
         }
         survey = UserSurvey(**payload)
@@ -537,8 +620,6 @@ def download_csv(project: str = None):
             "budget_category",
             "budget_range",
             "current_location",
-            "travel_date",
-            "travel_duration",
             "preferences",
         ]
     )
@@ -557,8 +638,6 @@ def download_csv(project: str = None):
                 s_dict.get("budget_category", ""),
                 json.dumps(s_dict.get("budget_range", [])),
                 s_dict.get("current_location", "").capitalize(),
-                s_dict.get("travel_date", ""),
-                s_dict.get("travel_duration", ""),
                 "; ".join(s_dict.get("preferences", [])).capitalize(),
             ]
         )

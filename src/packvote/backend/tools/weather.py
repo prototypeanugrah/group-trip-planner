@@ -1,6 +1,6 @@
 from langchain_community.utilities.openweathermap import OpenWeatherMapAPIWrapper
 
-from src.packvote import OPENWEATHERMAP_API_KEY
+from src.packvote.backend import OPENWEATHERMAP_API_KEY
 
 
 def get_weather(city: str) -> str:
